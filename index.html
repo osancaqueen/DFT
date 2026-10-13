@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Suárez DFT Log</title>
+<meta name="theme-color" content="#4640C4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DFT Log">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%97%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#F2F4F7; --panel:#FFFFFF; --ink:#1C2430; --muted:#5E6A7A; --line:#D9DEE5;
+  --accent:#4640C4; --accent-ink:#FFFFFF; --accent-soft:#E6E5FA;
+  --good:#1D7A58; --good-bg:#DDF1E8; --warn:#8F5E00; --warn-bg:#FBEBC8; --bad:#B0342C; --bad-bg:#F9DDDA;
+  --shadow:0 1px 2px rgba(28,36,48,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14181F; --panel:#1C222B; --ink:#E7EBF1; --muted:#98A3B3; --line:#2D3541;
+    --accent:#9B98FF; --accent-ink:#14181F; --accent-soft:#2A2850;
+    --good:#6FD3A8; --good-bg:#1A3A2E; --warn:#F0C060; --warn-bg:#3D3014; --bad:#FF9A90; --bad-bg:#412221;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14181F; --panel:#1C222B; --ink:#E7EBF1; --muted:#98A3B3; --line:#2D3541;
+  --accent:#9B98FF; --accent-ink:#14181F; --accent-soft:#2A2850;
+  --good:#6FD3A8; --good-bg:#1A3A2E; --warn:#F0C060; --warn-bg:#3D3014; --bad:#FF9A90; --bad-bg:#412221;
+  --shadow:none;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 16px 60px}
+.mono{font-family:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-variant-numeric:tabular-nums}
+
+header{display:flex;gap:18px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+h1{font:700 clamp(26px,5vw,38px)/1.05 'Bricolage Grotesque','Figtree',system-ui,sans-serif;margin:0 0 6px;letter-spacing:-.02em}
+header p{margin:0;color:var(--muted);max-width:50ch}
+.profile{width:min(280px,100%);height:auto;color:var(--accent);flex:0 0 auto}
+.profile text{fill:var(--muted);font:500 10px 'JetBrains Mono',monospace}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow)}
+.stat b{display:block;font:500 20px/1.2 'JetBrains Mono',monospace}
+.stat span{color:var(--muted);font-size:13px}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tab{border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;padding:10px 16px;font-weight:600;color:var(--muted);min-height:44px}
+.tab:hover{border-color:transparent;border-bottom-color:var(--line)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar input[type=search]{flex:1 1 200px}
+input,select,textarea,button{font:inherit;color:inherit}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:40px;width:100%}
+textarea{min-height:80px;resize:vertical}
+.toolbar select{width:auto;flex:0 1 auto}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 14px;min-height:40px;font-weight:500}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.danger{color:var(--bad)}
+button.ghost{border-color:transparent;background:transparent;padding:6px 8px;min-height:32px;color:var(--muted)}
+button.ghost:hover{color:var(--accent);border-color:transparent}
+button.ghost.danger:hover{color:var(--bad)}
+
+.tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th{font-weight:600;font-size:13px;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:bottom}
+th small{display:block;font-weight:400}
+td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right}
+.fname{font-weight:600;word-break:break-all}
+.sub{color:var(--muted);font-size:13px}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.tag[data-role="TS"]{background:var(--accent);color:var(--accent-ink)}
+.tag[data-role="SM"]{background:var(--good-bg);color:var(--good)}
+.tag[data-role="Product"]{background:var(--warn-bg);color:var(--warn)}
+.tag[data-role="Intermediate"],.tag[data-role="Other"]{background:var(--line);color:var(--muted)}
+.err{display:inline-block;padding:2px 8px;border-radius:6px;font:500 13px 'JetBrains Mono',monospace}
+.err.good{background:var(--good-bg);color:var(--good)}
+.err.warn{background:var(--warn-bg);color:var(--warn)}
+.err.bad{background:var(--bad-bg);color:var(--bad)}
+.none{color:var(--muted)}
+.warnnote{color:var(--warn);font-size:12px}
+.actions{white-space:nowrap;text-align:right}
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font:700 18px 'Bricolage Grotesque',sans-serif;margin-bottom:4px}
+
+/* reactions */
+.rx{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:16px;box-shadow:var(--shadow);overflow:hidden}
+.rxhead{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line)}
+.rxhead h3{margin:0 0 2px;font:700 20px/1.2 'Bricolage Grotesque',sans-serif}
+.ratios{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px}
+.ratios div{font-size:13px;color:var(--muted)}
+.ratios b{display:block;color:var(--ink);font:500 16px 'JetBrains Mono',monospace}
+.rx .tablewrap{border:0;border-radius:0;box-shadow:none;background:transparent}
+.rx table{min-width:1000px}
+
+@media (max-width:760px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .tablewrap{background:transparent;border:0;box-shadow:none;overflow:visible}
+  table,thead,tbody,tr,td{display:block;min-width:0!important;width:100%}
+  thead{display:none}
+  tr{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:8px 12px;box-shadow:var(--shadow)}
+  td{border:0;padding:5px 0;display:flex;justify-content:space-between;gap:14px;text-align:right}
+  td::before{content:attr(data-label);color:var(--muted);font-size:13px;text-align:left;flex:0 0 auto}
+  td.nolabel::before{display:none}
+  td.nolabel{text-align:left;display:block}
+  td.actions{justify-content:flex-end;border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+  td.actions::before{display:none}
+  .rx .tablewrap{padding:0 12px 4px}
+  .rx tr{background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;margin:0;padding:10px 0}
+  .rx tr:first-child{border-top:0}
+}
+
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:0;width:min(700px,calc(100% - 20px));max-height:calc(100% - 20px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,14,20,.55)}
+.dhead{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);z-index:1}
+.dhead h2{margin:0;font:700 20px 'Bricolage Grotesque',sans-serif}
+.dbody{padding:16px 18px}
+.dfoot{display:flex;gap:8px;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--panel)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid .full{grid-column:1/-1}
+@media (max-width:520px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+.hint{font-size:12px;color:var(--muted);margin-top:3px;font-weight:400}
+fieldset{border:1px solid var(--line);border-radius:10px;margin:14px 0 0;padding:12px}
+legend{font-weight:600;font-size:13px;color:var(--muted);padding:0 6px}
+.prow{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.prow-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50;max-width:92%;text-align:center}
+.toast.show{opacity:1}
+.notice{background:var(--warn-bg);color:var(--warn);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:13px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Suárez DFT log</h1>
+      <p>Log every file, then link starting material, transition states and products into reactions to get barriers, rates and product ratios.</p>
+    </div>
+    <svg class="profile" viewBox="0 0 300 96" role="img" aria-label="Energy profile: reactant, transition state, product">
+      <path d="M6 62 H44 C70 62 82 14 120 14 C158 14 168 70 206 70 H294" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="120" cy="14" r="4" fill="currentColor"/>
+      <line x1="120" y1="18" x2="120" y2="62" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>
+      <text x="6" y="82">SM</text>
+      <text x="132" y="28">TS‡</text>
+      <text x="250" y="88">product</text>
+    </svg>
+  </header>
+
+  <div id="notice"></div>
+
+  <section class="stats" aria-label="Summary">
+    <div class="stat"><b id="sFiles">0</b><span>files logged</span></div>
+    <div class="stat"><b id="sRx">0</b><span>reactions</span></div>
+    <div class="stat"><b id="sMAE">–</b><span>mean |barrier error|, kcal/mol</span></div>
+    <div class="stat"><b id="sRat">–</b><span>mean |ratio error|, points</span></div>
+  </section>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabFiles" aria-selected="true">Files</button>
+    <button class="tab" role="tab" id="tabRx" aria-selected="false">Reactions</button>
+  </div>
+
+  <!-- FILES -->
+  <section id="paneFiles">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search file, substrate, level of theory" aria-label="Search files">
+      <select id="fRole" aria-label="Filter by role">
+        <option value="">All roles</option>
+        <option>SM</option><option>TS</option><option>Intermediate</option><option>Product</option><option>Other</option>
+      </select>
+      <select id="fType" aria-label="Filter by calculation type">
+        <option value="">All types</option>
+        <option>Optimization</option><option>Scan</option><option>TS optimization</option><option>Single point</option>
+      </select>
+      <select id="sort" aria-label="Sort">
+        <option value="created-desc">Newest first</option>
+        <option value="created-asc">Oldest first</option>
+        <option value="filename-asc">File name A–Z</option>
+        <option value="substituent-asc">Substrate A–Z</option>
+        <option value="role-asc">Role</option>
+        <option value="energy-asc">Energy low to high</option>
+      </select>
+      <button class="primary" id="addFile">Add file</button>
+      <button id="backupBtn">Backup</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>File</th><th>Role</th><th>Level of theory</th><th>Type</th><th>Substrate</th>
+          <th class="num">Energy (Hartree)</th><th class="num">ν‡ (cm⁻¹)</th><th>Used in</th><th></th>
+        </tr></thead>
+        <tbody id="fileRows"></tbody>
+      </table>
+      <div id="fileEmpty" class="empty" hidden></div>
+    </div>
+  </section>
+
+  <!-- REACTIONS -->
+  <section id="paneRx" hidden>
+    <div class="toolbar">
+      <input type="search" id="rq" placeholder="Search reactions or substrate" aria-label="Search reactions">
+      <button class="primary" id="addRx">New reaction</button>
+      <button id="backupBtn2">Backup</button>
+    </div>
+    <div id="rxList"></div>
+    <div id="rxEmpty" class="empty tablewrap" hidden></div>
+  </section>
+</div>
+
+<!-- File dialog -->
+<dialog id="fdlg">
+  <div class="dhead"><h2 id="fTitle">Add file</h2><button class="ghost" data-close="fdlg" aria-label="Close">✕</button></div>
+  <div class="dbody">
+    <div class="grid">
+      <div class="full">
+        <label for="f_filename">File name</label>
+        <input id="f_filename" placeholder="e.g. TS_HAT15_pOMe.log" autocomplete="off">
+      </div>
+      <div>
+        <label for="f_role">What is it?</label>
+        <select id="f_role">
+          <option value="SM">Starting material (SM)</option>
+          <option value="TS">Transition state (TS)</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Product">Product</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label for="f_type">Calculation type</label>
+        <select id="f_type">
+          <option>Optimization</option><option>Scan</option><option>TS optimization</option><option>Single point</option>
+        </select>
+      </div>
+      <div>
+        <label for="f_theory">Level of theory</label>
+        <input id="f_theory" list="dl_theory" placeholder="e.g. ωB97X-D" autocomplete="off">
+        <datalist id="dl_theory"></datalist>
+      </div>
+      <div>
+        <label for="f_basis">Basis set</label>
+        <input id="f_basis" list="dl_basis" placeholder="e.g. def2-TZVP" autocomplete="off">
+        <datalist id="dl_basis"></datalist>
+      </div>
+      <div>
+        <label for="f_solvent">Solvent model (optional)</label>
+        <input id="f_solvent" placeholder="e.g. SMD(DCM), gas phase" autocomplete="off">
+      </div>
+      <div>
+        <label for="f_sub">Substrate (substituent on the aromatic)</label>
+        <input id="f_sub" list="dl_sub" placeholder="e.g. p-OMe, H" autocomplete="off">
+        <datalist id="dl_sub"></datalist>
+      </div>
+      <div>
+        <label for="f_energy">Energy (Hartree)</label>
+        <input id="f_energy" type="text" inputmode="decimal" placeholder="e.g. -1234.567890">
+      </div>
+      <div>
+        <label for="f_etype">Energy is</label>
+        <select id="f_etype">
+          <option value="G">Gibbs free energy (G)</option>
+          <option value="H">Enthalpy (H)</option>
+          <option value="E+ZPE">Electronic + ZPE</option>
+          <option value="E">Electronic (E)</option>
+        </select>
+      </div>
+      <div class="full" id="freqBox">
+        <label for="f_freq">TS imaginary frequency (cm⁻¹)</label>
+        <input id="f_freq" type="text" inputmode="decimal" placeholder="e.g. 452.3">
+        <div class="hint">Enter 452 or −452; shown as 452i. Used for the tunnelling correction.</div>
+      </div>
+      <div class="full">
+        <label for="f_notes">Notes</label>
+        <textarea id="f_notes" placeholder="Convergence issues, where the guess came from, scan step used"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="danger" id="fDelete" hidden>Delete</button>
+    <span style="flex:1"></span>
+    <button data-close="fdlg">Cancel</button>
+    <button class="primary" id="fSave">Save</button>
+  </div>
+</dialog>
+
+<!-- Reaction dialog -->
+<dialog id="rdlg">
+  <div class="dhead"><h2 id="rTitle">New reaction</h2><button class="ghost" data-close="rdlg" aria-label="Close">✕</button></div>
+  <div class="dbody">
+    <div class="grid">
+      <div class="full">
+        <label for="r_name">Reaction name</label>
+        <input id="r_name" placeholder="e.g. p-OMe substrate, ωB97X-D/def2-TZVP" autocomplete="off">
+      </div>
+      <div>
+        <label for="r_sub">Substrate</label>
+        <input id="r_sub" list="dl_sub" placeholder="e.g. p-OMe" autocomplete="off">
+      </div>
+      <div>
+        <label for="r_temp">Temperature (K)</label>
+        <input id="r_temp" type="text" inputmode="decimal" placeholder="298.15">
+      </div>
+      <div class="full">
+        <label for="r_sm">Starting material file</label>
+        <select id="r_sm"></select>
+        <div class="hint">Barriers are measured from this file. Add a file with role SM first if it is missing.</div>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>Pathways, one per product</legend>
+      <div id="paths"></div>
+      <button id="addPath">Add pathway</button>
+      <div class="hint" style="margin-top:8px">Calculated product ratio comes from the rates of all pathways. Experimental ratio can be parts (85 and 15, or 5 and 1); they are normalised.</div>
+    </fieldset>
+
+    <div style="margin-top:14px">
+      <label for="r_notes">Notes</label>
+      <textarea id="r_notes"></textarea>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="danger" id="rDelete" hidden>Delete</button>
+    <span style="flex:1"></span>
+    <button data-close="rdlg">Cancel</button>
+    <button class="primary" id="rSave">Save</button>
+  </div>
+</dialog>
+
+<!-- Backup dialog -->
+<dialog id="bdlg">
+  <div class="dhead"><h2>Backup and restore</h2><button class="ghost" data-close="bdlg" aria-label="Close">✕</button></div>
+  <div class="dbody">
+    <p class="sub" style="margin-top:0">Data is saved in this browser only. Back it up now and then, especially before clearing site data.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button id="bShowJson">Show JSON backup</button>
+      <button id="bShowFiles">Files as CSV</button>
+      <button id="bShowPaths">Pathways as CSV</button>
+      <button id="bDownload">Download JSON</button>
+    </div>
+    <label for="bText">Backup text</label>
+    <textarea id="bText" class="mono" style="min-height:140px;font-size:12px" placeholder="Choose an export above to copy it, or paste a JSON backup here and restore."></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button id="bCopy">Copy text</button>
+      <button class="primary" id="bRestore">Restore from pasted JSON</button>
+    </div>
+    <div style="margin-top:14px">
+      <label for="bFile">Or restore from a JSON file</label>
+      <input type="file" id="bFile" accept=".json,application/json">
+    </div>
+    <div class="hint" style="margin-top:8px">Restoring merges with what you have. Entries with the same id are overwritten.</div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var $ = function(s){return document.querySelector(s)};
+  var files = [], reactions = [];
+  var db = null, memOnly = false;
+  var editingFile = null, editingRx = null;
+
+  var HA_KCAL = 627.5095, HA_KJ = 2625.4996;
+  var KB = 1.380649e-23, H = 6.62607015e-34, R_KCAL = 1.987204e-3, HC_KB = 1.438777; /* cm*K */
+  var ETYPE_LABEL = {G:'ΔG‡',H:'ΔH‡','E+ZPE':'ΔE₀‡',E:'ΔE‡'};
+
+  var DEF_THEORY = ['B3LYP','B3LYP-D3(BJ)','M06-2X','ωB97X-D','PBE0-D3(BJ)','B97-D3','CAM-B3LYP','M06-L'];
+  var DEF_BASIS = ['6-31G(d)','6-31+G(d,p)','6-311+G(d,p)','6-311++G(2d,2p)','def2-SVP','def2-TZVP','def2-QZVP','cc-pVTZ'];
+  var DEF_SUB = ['H','p-OMe','p-Me','p-F','p-Cl','p-Br','p-CF3','p-NO2','p-CN','m-OMe','m-Me','m-Cl','m-CF3','m-NO2','o-OMe','o-Me','o-Cl'];
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function uid(){return 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2,7)}
+  function num(v){if(v===''||v==null)return null;var n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n}
+  function fmt(n,d){return n==null?null:Number(n).toFixed(d==null?1:d)}
+  function dash(){return '<span class="none">–</span>'}
+  function fileById(id){for(var i=0;i<files.length;i++){if(files[i].id===id)return files[i]}return null}
+  function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show')},2600)}
+
+  /* ---------- storage ---------- */
+  function openDB(){
+    return new Promise(function(res,rej){
+      try{
+        var r = indexedDB.open('suarez-dft-v2',1);
+        r.onupgradeneeded = function(){
+          r.result.createObjectStore('files',{keyPath:'id'});
+          r.result.createObjectStore('reactions',{keyPath:'id'});
+        };
+        r.onsuccess = function(){res(r.result)};
+        r.onerror = function(){rej(r.error)};
+      }catch(e){rej(e)}
+    });
+  }
+  function dbAll(store){
+    return new Promise(function(res,rej){
+      try{
+        var q = db.transaction(store,'readonly').objectStore(store).getAll();
+        q.onsuccess = function(){res(q.result||[])};
+        q.onerror = function(){rej(q.error)};
+      }catch(e){rej(e)}
+    });
+  }
+  function dbPut(store,rec){
+    if(memOnly||!db) return Promise.resolve();
+    return new Promise(function(res,rej){
+      try{
+        var tx = db.transaction(store,'readwrite');
+        tx.objectStore(store).put(rec);
+        tx.oncomplete = function(){res()};
+        tx.onerror = function(){rej(tx.error)};
+      }catch(e){rej(e)}
+    });
+  }
+  function dbDel(store,id){
+    if(memOnly||!db) return Promise.resolve();
+    return new Promise(function(res,rej){
+      try{
+        var tx = db.transaction(store,'readwrite');
+        tx.objectStore(store).delete(id);
+        tx.oncomplete = function(){res()};
+        tx.onerror = function(){rej(tx.error)};
+      }catch(e){rej(e)}
+    });
+  }
+
+  /* ---------- calculations ---------- */
+  function computeRx(rx){
+    var sm = fileById(rx.smId);
+    var T = rx.temp || 298.15;
+    var items = (rx.paths||[]).map(function(p){
+      var ts = fileById(p.tsId), pr = fileById(p.prodId);
+      var c = {p:p, ts:ts, pr:pr, T:T};
+      c.freq = ts ? ts.freq : null;
+      if(sm && ts && sm.energy!=null && ts.energy!=null){
+        c.bF = (ts.energy - sm.energy)*HA_KCAL;
+        c.etype = ts.energyType || 'G';
+        c.mismatch = (sm.energyType||'G') !== (ts.energyType||'G');
+      }
+      if(ts && pr && ts.energy!=null && pr.energy!=null){
+        c.bR = (ts.energy - pr.energy)*HA_KJ;
+        if((ts.energyType||'G') !== (pr.energyType||'G')) c.mismatch = true;
+      }
+      if(c.bF!=null){
+        var k0 = KB*T/H*Math.exp(-c.bF/(R_KCAL*T));
+        c.kappa = c.freq!=null ? 1 + Math.pow(HC_KB*c.freq/T,2)/24 : null;
+        c.kWig = k0*(c.kappa||1);
+      }
+      if(p.kManual!=null){c.k = p.kManual; c.kSrc = 'entered' + (p.kMethod?' ('+p.kMethod+')':'');}
+      else if(c.kWig!=null){c.k = c.kWig; c.kSrc = c.kappa!=null ? 'Wigner' : 'no tunnelling (no ν‡)';}
+      c.err = (c.bF!=null && p.expBarrier!=null) ? c.bF - p.expBarrier : null;
+      return c;
+    });
+    var allK = items.length>1 && items.every(function(c){return c.k!=null});
+    if(allK){
+      var sk = items.reduce(function(a,c){return a+c.k},0);
+      items.forEach(function(c){c.calcPct = c.k/sk*100});
+    }
+    var allE = items.length>1 && items.every(function(c){return c.p.expRatio!=null});
+    if(allE){
+      var se = items.reduce(function(a,c){return a+c.p.expRatio},0);
+      if(se>0) items.forEach(function(c){c.expPct = c.p.expRatio/se*100});
+    }
+    items.forEach(function(c){c.dPct = (c.calcPct!=null && c.expPct!=null) ? c.calcPct - c.expPct : null});
+    return {sm:sm, T:T, items:items};
+  }
+  function ratioStr(items,key){
+    if(!items.length || items.some(function(c){return c[key]==null})) return null;
+    return items.map(function(c){return Math.round(c[key])}).join(' : ');
+  }
+  function fk(k){return k==null?dash():k.toExponential(2)}
+  function badge(v,d,good,warn){
+    if(v==null) return dash();
+    var a = Math.abs(v), cls = a<=good?'good':(a<=warn?'warn':'bad');
+    return '<span class="err '+cls+'">'+(v>0?'+':'')+v.toFixed(d)+'</span>';
+  }
+  function usedIn(){
+    var map = {};
+    function add(id,name){if(!id)return;(map[id]=map[id]||[]);if(map[id].indexOf(name)<0)map[id].push(name)}
+    reactions.forEach(function(rx){
+      add(rx.smId,rx.name);
+      (rx.paths||[]).forEach(function(p){add(p.tsId,rx.name);add(p.prodId,rx.name)});
+    });
+    return map;
+  }
+
+  /* ---------- render: files ---------- */
+  function filteredFiles(){
+    var q = $('#q').value.trim().toLowerCase(), role = $('#fRole').value, t = $('#fType').value;
+    return files.filter(function(f){
+      if(role && f.role!==role) return false;
+      if(t && f.calcType!==t) return false;
+      if(!q) return true;
+      return [f.filename,f.theory,f.basis,f.solvent,f.substituent,f.notes,f.role].join(' ').toLowerCase().indexOf(q)>-1;
+    });
+  }
+  function sortFiles(list){
+    var parts = $('#sort').value.split('-'), key = parts[0], dir = parts[1]==='desc'?-1:1;
+    return list.slice().sort(function(a,b){
+      var x=a[key], y=b[key];
+      var xn=(x==null||x===''), yn=(y==null||y==='');
+      if(xn&&yn) return 0; if(xn) return 1; if(yn) return -1;
+      if(typeof x==='string') return x.localeCompare(y,undefined,{numeric:true,sensitivity:'base'})*dir;
+      return (x-y)*dir;
+    });
+  }
+  function renderFiles(){
+    var list = sortFiles(filteredFiles());
+    var used = usedIn();
+    $('#fileRows').innerHTML = list.map(function(f){
+      var theory = [f.theory,f.basis].filter(Boolean).join('/');
+      var u = used[f.id]||[];
+      return '<tr data-id="'+esc(f.id)+'">'+
+        '<td class="nolabel"><div class="fname">'+esc(f.filename)+'</div>'+(f.notes?'<div class="sub">'+esc(f.notes.length>80?f.notes.slice(0,80)+'…':f.notes)+'</div>':'')+'</td>'+
+        '<td data-label="Role"><span class="tag" data-role="'+esc(f.role)+'">'+esc(f.role)+'</span></td>'+
+        '<td data-label="Level of theory"><div>'+(theory?esc(theory):dash())+'</div>'+(f.solvent?'<div class="sub">'+esc(f.solvent)+'</div>':'')+'</td>'+
+        '<td data-label="Type">'+esc(f.calcType)+'</td>'+
+        '<td data-label="Substrate">'+(f.substituent?esc(f.substituent):dash())+'</td>'+
+        '<td data-label="Energy (Hartree)" class="num mono">'+(f.energy!=null?'<div>'+f.energy.toFixed(6)+'</div><div class="sub">'+esc(f.energyType||'G')+'</div>':dash())+'</td>'+
+        '<td data-label="ν‡ (cm⁻¹)" class="num mono">'+(f.freq!=null?fmt(f.freq,1)+'i':dash())+'</td>'+
+        '<td data-label="Used in">'+(u.length?'<span class="sub">'+esc(u.join(', '))+'</span>':dash())+'</td>'+
+        '<td class="actions"><button class="ghost" data-act="edit">Edit</button><button class="ghost" data-act="dup">Duplicate</button></td>'+
+      '</tr>';
+    }).join('');
+    var empty = $('#fileEmpty');
+    empty.hidden = list.length>0;
+    if(!list.length) empty.innerHTML = files.length ? '<b>Nothing matches</b>Clear the search or filters to see every file.' : '<b>No files yet</b>Add each SM, TS and product file as you finish it. Group them into reactions afterwards.';
+  }
+
+  /* ---------- render: reactions ---------- */
+  function renderReactions(){
+    var q = $('#rq').value.trim().toLowerCase();
+    var list = reactions.filter(function(rx){return !q || [rx.name,rx.substrate,rx.notes].join(' ').toLowerCase().indexOf(q)>-1});
+    list = list.slice().sort(function(a,b){return (b.created||0)-(a.created||0)});
+    $('#rxList').innerHTML = list.map(function(rx){
+      var c = computeRx(rx);
+      var calcR = ratioStr(c.items,'calcPct'), expR = ratioStr(c.items,'expPct');
+      var rows = c.items.map(function(it){
+        var p = it.p;
+        var kSub = it.k!=null ? '<div class="sub">'+esc(it.kSrc)+(it.kappa!=null&&p.kManual==null?', κ = '+it.kappa.toFixed(2):'')+'</div>' : '';
+        return '<tr>'+
+          '<td class="nolabel"><div class="fname">'+esc(p.label||'Pathway')+'</div>'+
+            '<div class="sub">TS: '+(it.ts?esc(it.ts.filename):'not set')+'</div>'+
+            '<div class="sub">Product: '+(it.pr?esc(it.pr.filename):'not set')+'</div></td>'+
+          '<td data-label="ν‡ (cm⁻¹)" class="num mono">'+(it.freq!=null?fmt(it.freq,1)+'i':dash())+'</td>'+
+          '<td data-label="Barrier (kcal/mol)" class="num mono">'+(it.bF!=null?'<div>'+it.bF.toFixed(1)+'</div><div class="sub">'+ETYPE_LABEL[it.etype||'G']+'</div>'+(it.mismatch?'<div class="warnnote">energy types differ</div>':''):dash())+'</td>'+
+          '<td data-label="Reverse barrier (kJ/mol)" class="num mono">'+(it.bR!=null?it.bR.toFixed(1):dash())+'</td>'+
+          '<td data-label="Rate with tunnelling (s⁻¹)" class="num mono"><div>'+fk(it.k)+'</div>'+kSub+'</td>'+
+          '<td data-label="Calc. %" class="num mono">'+(it.calcPct!=null?it.calcPct.toFixed(1):dash())+'</td>'+
+          '<td data-label="Exp. %" class="num mono">'+(it.expPct!=null?it.expPct.toFixed(1):dash())+'</td>'+
+          '<td data-label="Ratio error (points)" class="num">'+badge(it.dPct,1,5,15)+'</td>'+
+          '<td data-label="Exp. barrier (kcal/mol)" class="num mono">'+(p.expBarrier!=null?fmt(p.expBarrier,1):dash())+'</td>'+
+          '<td data-label="Barrier error (kcal/mol)" class="num">'+badge(it.err,1,1,3)+'</td>'+
+        '</tr>';
+      }).join('');
+      return '<section class="rx" data-id="'+esc(rx.id)+'">'+
+        '<div class="rxhead"><div>'+
+          '<h3>'+esc(rx.name)+'</h3>'+
+          '<div class="sub">'+(rx.substrate?esc(rx.substrate)+' · ':'')+'SM: '+(c.sm?esc(c.sm.filename):'not set')+' · '+c.T+' K</div>'+
+          ((calcR||expR)?'<div class="ratios"><div>Calculated ratio<b>'+(calcR||'–')+'</b></div><div>Experimental ratio<b>'+(expR||'–')+'</b></div></div>':'')+
+          (rx.notes?'<div class="sub" style="margin-top:6px">'+esc(rx.notes)+'</div>':'')+
+        '</div><div><button class="ghost" data-act="edit">Edit</button><button class="ghost" data-act="dup">Duplicate</button></div></div>'+
+        (c.items.length?
+          '<div class="tablewrap"><table><thead><tr>'+
+            '<th>Pathway</th><th class="num">ν‡ (cm⁻¹)</th><th class="num">Barrier<small>kcal/mol</small></th><th class="num">Reverse barrier<small>kJ/mol</small></th>'+
+            '<th class="num">Rate with tunnelling<small>s⁻¹</small></th><th class="num">Calc. %</th><th class="num">Exp. %</th><th class="num">Ratio error<small>points</small></th>'+
+            '<th class="num">Exp. barrier<small>kcal/mol</small></th><th class="num">Barrier error<small>kcal/mol</small></th>'+
+          '</tr></thead><tbody>'+rows+'</tbody></table></div>'
+          : '<div class="empty">No pathways yet. Edit the reaction to add one.</div>')+
+      '</section>';
+    }).join('');
+    var e = $('#rxEmpty');
+    e.hidden = list.length>0;
+    if(!list.length){
+      e.innerHTML = reactions.length ? '<b>Nothing matches</b>Clear the search to see all reactions.' :
+        (files.length ? '<b>No reactions yet</b>Pick an SM file, then add one pathway per product with its TS and product file.' : '<b>No reactions yet</b>Log your SM, TS and product files first, then link them here.');
+    }
+  }
+
+  function renderStats(){
+    $('#sFiles').textContent = files.length;
+    $('#sRx').textContent = reactions.length;
+    var be = [], re = [];
+    reactions.forEach(function(rx){
+      computeRx(rx).items.forEach(function(it){
+        if(it.err!=null) be.push(Math.abs(it.err));
+        if(it.dPct!=null) re.push(Math.abs(it.dPct));
+      });
+    });
+    function mean(a){return a.reduce(function(x,y){return x+y},0)/a.length}
+    $('#sMAE').textContent = be.length ? mean(be).toFixed(2) : '–';
+    $('#sRat').textContent = re.length ? mean(re).toFixed(1) : '–';
+  }
+  function fillList(id, defaults, vals){
+    var set = {};
+    defaults.forEach(function(d){set[d]=1});
+    vals.forEach(function(v){if(v) set[v]=1});
+    $(id).innerHTML = Object.keys(set).map(function(v){return '<option value="'+esc(v)+'">'}).join('');
+  }
+  function renderAll(){
+    renderFiles(); renderReactions(); renderStats();
+    fillList('#dl_theory',DEF_THEORY,files.map(function(f){return f.theory}));
+    fillList('#dl_basis',DEF_BASIS,files.map(function(f){return f.basis}));
+    fillList('#dl_sub',DEF_SUB,files.map(function(f){return f.substituent}).concat(reactions.map(function(r){return r.substrate})));
+  }
+
+  /* ---------- tabs ---------- */
+  function showTab(which){
+    var f = which==='files';
+    $('#paneFiles').hidden = !f; $('#paneRx').hidden = f;
+    $('#tabFiles').setAttribute('aria-selected',f); $('#tabRx').setAttribute('aria-selected',!f);
+  }
+  $('#tabFiles').onclick = function(){showTab('files')};
+  $('#tabRx').onclick = function(){showTab('rx')};
+
+  /* ---------- file form ---------- */
+  function toggleFreq(){$('#freqBox').hidden = !($('#f_role').value==='TS' || $('#f_type').value==='TS optimization')}
+  $('#f_role').addEventListener('change',toggleFreq);
+  $('#f_type').addEventListener('change',toggleFreq);
+
+  function openFile(rec, asNew){
+    editingFile = (rec && !asNew) ? rec.id : null;
+    $('#fTitle').textContent = editingFile ? 'Edit file' : (rec ? 'Duplicate file' : 'Add file');
+    $('#fDelete').hidden = !editingFile;
+    var r = rec || {};
+    $('#f_filename').value = (asNew ? '' : r.filename) || '';
+    $('#f_role').value = r.role || 'SM';
+    $('#f_type').value = r.calcType || 'Optimization';
+    $('#f_theory').value = r.theory || '';
+    $('#f_basis').value = r.basis || '';
+    $('#f_solvent').value = r.solvent || '';
+    $('#f_sub').value = r.substituent || '';
+    $('#f_energy').value = (!asNew && r.energy!=null) ? r.energy : '';
+    $('#f_etype').value = r.energyType || 'G';
+    $('#f_freq').value = (!asNew && r.freq!=null) ? r.freq : '';
+    $('#f_notes').value = (!asNew && r.notes) ? r.notes : '';
+    toggleFreq();
+    $('#fdlg').showModal();
+    if(!editingFile) $('#f_filename').focus();
+  }
+  function saveFile(){
+    var name = $('#f_filename').value.trim();
+    if(!name){toast('Add a file name first');$('#f_filename').focus();return}
+    var freq = num($('#f_freq').value);
+    var old = editingFile ? fileById(editingFile) : null;
+    var rec = {
+      id: editingFile || uid(),
+      created: old ? old.created : Date.now(),
+      filename: name,
+      role: $('#f_role').value,
+      calcType: $('#f_type').value,
+      theory: $('#f_theory').value.trim(),
+      basis: $('#f_basis').value.trim(),
+      solvent: $('#f_solvent').value.trim(),
+      substituent: $('#f_sub').value.trim(),
+      energy: num($('#f_energy').value),
+      energyType: $('#f_etype').value,
+      freq: ($('#freqBox').hidden || freq==null) ? null : Math.abs(freq),
+      notes: $('#f_notes').value.trim()
+    };
+    var i = files.findIndex(function(f){return f.id===rec.id});
+    if(i>-1) files[i]=rec; else files.push(rec);
+    dbPut('files',rec).then(function(){toast('Saved')}).catch(function(){toast('Saved here, but not to browser storage')});
+    $('#fdlg').close();
+    renderAll();
+  }
+  function deleteFile(){
+    if(!editingFile) return;
+    var id = editingFile, n = 0;
+    reactions.forEach(function(rx){
+      if(rx.smId===id) n++;
+      (rx.paths||[]).forEach(function(p){if(p.tsId===id||p.prodId===id) n++});
+    });
+    if(!confirm(n ? 'This file is linked in '+n+' place'+(n===1?'':'s')+' in your reactions. Delete it and clear those links?' : 'Delete this file?')) return;
+    files = files.filter(function(f){return f.id!==id});
+    dbDel('files',id).catch(function(){});
+    reactions.forEach(function(rx){
+      var changed = false;
+      if(rx.smId===id){rx.smId='';changed=true}
+      (rx.paths||[]).forEach(function(p){
+        if(p.tsId===id){p.tsId='';changed=true}
+        if(p.prodId===id){p.prodId='';changed=true}
+      });
+      if(changed) dbPut('reactions',rx).catch(function(){});
+    });
+    $('#fdlg').close();
+    renderAll();
+    toast('Deleted');
+  }
+
+  /* ---------- reaction form ---------- */
+  var SM_ROLES = ['SM','Intermediate'], TS_ROLES = ['TS'], PR_ROLES = ['Product','Intermediate'];
+  function optionsFor(roles, current){
+    var sub = $('#r_sub').value.trim().toLowerCase();
+    var cands = files.filter(function(f){return roles.indexOf(f.role)>-1 || f.id===current});
+    cands.sort(function(a,b){
+      var am = (a.substituent||'').toLowerCase()===sub && sub ? 0 : 1;
+      var bm = (b.substituent||'').toLowerCase()===sub && sub ? 0 : 1;
+      if(am!==bm) return am-bm;
+      return a.filename.localeCompare(b.filename,undefined,{numeric:true,sensitivity:'base'});
+    });
+    var h = '<option value="">'+(cands.length?'Choose a file':'No files with this role yet')+'</option>';
+    cands.forEach(function(f){
+      h += '<option value="'+esc(f.id)+'"'+(f.id===current?' selected':'')+'>'+esc(f.filename)+(f.substituent?' · '+esc(f.substituent):'')+'</option>';
+    });
+    return h;
+  }
+  function refreshSelects(){
+    var sm = $('#r_sm'); sm.innerHTML = optionsFor(SM_ROLES, sm.value);
+    document.querySelectorAll('#paths .prow').forEach(function(row){
+      var ts = row.querySelector('.p_ts'), pr = row.querySelector('.p_prod');
+      ts.innerHTML = optionsFor(TS_ROLES, ts.value);
+      pr.innerHTML = optionsFor(PR_ROLES, pr.value);
+    });
+  }
+  function renumber(){
+    document.querySelectorAll('#paths .prow').forEach(function(row,i){row.querySelector('.pnum').textContent = 'Pathway '+(i+1)});
+  }
+  function addPathRow(p){
+    p = p || {};
+    var div = document.createElement('div');
+    div.className = 'prow';
+    div.innerHTML =
+      '<div class="prow-head"><b class="pnum"></b><button class="ghost danger" data-rm type="button">Remove</button></div>'+
+      '<div class="grid">'+
+        '<div class="full"><label>Pathway name</label><input class="p_label" placeholder="e.g. 1,5-HAT to THF product" autocomplete="off"></div>'+
+        '<div><label>TS file</label><select class="p_ts"></select></div>'+
+        '<div><label>Product file</label><select class="p_prod"></select></div>'+
+        '<div><label>Experimental ratio</label><input class="p_expr" type="text" inputmode="decimal" placeholder="e.g. 85"></div>'+
+        '<div><label>Experimental barrier (kcal/mol)</label><input class="p_expb" type="text" inputmode="decimal"></div>'+
+        '<div><label>Rate with tunnelling, entered (s⁻¹)</label><input class="p_k" type="text" inputmode="decimal" placeholder="e.g. 3.2e5"><div class="hint">Leave blank to use the Wigner estimate.</div></div>'+
+        '<div><label>Tunnelling method</label><input class="p_km" placeholder="e.g. Eckart, SCT"></div>'+
+      '</div>';
+    $('#paths').appendChild(div);
+    div.querySelector('.p_label').value = p.label || '';
+    div.querySelector('.p_ts').innerHTML = optionsFor(TS_ROLES, p.tsId||'');
+    div.querySelector('.p_prod').innerHTML = optionsFor(PR_ROLES, p.prodId||'');
+    div.querySelector('.p_expr').value = p.expRatio!=null ? p.expRatio : '';
+    div.querySelector('.p_expb').value = p.expBarrier!=null ? p.expBarrier : '';
+    div.querySelector('.p_k').value = p.kManual!=null ? p.kManual : '';
+    div.querySelector('.p_km').value = p.kMethod || '';
+    renumber();
+  }
+  $('#paths').addEventListener('click',function(e){
+    var b = e.target.closest('[data-rm]'); if(!b) return;
+    b.closest('.prow').remove(); renumber();
+  });
+  $('#addPath').onclick = function(){addPathRow()};
+  $('#r_sub').addEventListener('input',refreshSelects);
+  $('#r_sm').addEventListener('change',function(){
+    var f = fileById($('#r_sm').value);
+    if(f && f.substituent && !$('#r_sub').value.trim()){$('#r_sub').value = f.substituent; refreshSelects()}
+  });
+
+  function openRx(rec, asNew){
+    editingRx = (rec && !asNew) ? rec.id : null;
+    $('#rTitle').textContent = editingRx ? 'Edit reaction' : (rec ? 'Duplicate reaction' : 'New reaction');
+    $('#rDelete').hidden = !editingRx;
+    var r = rec || {};
+    $('#r_name').value = r.name ? (asNew ? r.name+' (copy)' : r.name) : '';
+    $('#r_sub').value = r.substrate || '';
+    $('#r_temp').value = r.temp!=null ? r.temp : '';
+    $('#r_notes').value = r.notes || '';
+    $('#r_sm').innerHTML = optionsFor(SM_ROLES, r.smId||'');
+    $('#paths').innerHTML = '';
+    (r.paths && r.paths.length ? r.paths : [{}]).forEach(addPathRow);
+    $('#rdlg').showModal();
+    if(!rec) $('#r_name').focus();
+  }
+  function saveRx(){
+    var name = $('#r_name').value.trim();
+    if(!name){toast('Give the reaction a name');$('#r_name').focus();return}
+    var paths = [];
+    document.querySelectorAll('#paths .prow').forEach(function(row){
+      var p = {
+        label: row.querySelector('.p_label').value.trim(),
+        tsId: row.querySelector('.p_ts').value,
+        prodId: row.querySelector('.p_prod').value,
+        expRatio: num(row.querySelector('.p_expr').value),
+        expBarrier: num(row.querySelector('.p_expb').value),
+        kManual: num(row.querySelector('.p_k').value),
+        kMethod: row.querySelector('.p_km').value.trim()
+      };
+      if(p.label||p.tsId||p.prodId||p.expRatio!=null||p.expBarrier!=null||p.kManual!=null) paths.push(p);
+    });
+    var old = editingRx ? reactions.filter(function(r){return r.id===editingRx})[0] : null;
+    var rec = {
+      id: editingRx || uid(),
+      created: old ? old.created : Date.now(),
+      name: name,
+      substrate: $('#r_sub').value.trim(),
+      temp: num($('#r_temp').value),
+      smId: $('#r_sm').value,
+      paths: paths,
+      notes: $('#r_notes').value.trim()
+    };
+    var i = reactions.findIndex(function(r){return r.id===rec.id});
+    if(i>-1) reactions[i]=rec; else reactions.push(rec);
+    dbPut('reactions',rec).then(function(){toast('Saved')}).catch(function(){toast('Saved here, but not to browser storage')});
+    $('#rdlg').close();
+    renderAll();
+  }
+  function deleteRx(){
+    if(!editingRx) return;
+    if(!confirm('Delete this reaction? Your files stay.')) return;
+    var id = editingRx;
+    reactions = reactions.filter(function(r){return r.id!==id});
+    dbDel('reactions',id).catch(function(){});
+    $('#rdlg').close();
+    renderAll();
+    toast('Deleted');
+  }
+
+  /* ---------- backup ---------- */
+  function cell(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+  function filesCSV(){
+    var cols = [['filename','File'],['role','Role'],['calcType','Type'],['theory','Level of theory'],['basis','Basis set'],['solvent','Solvent'],['substituent','Substrate'],['energy','Energy (Hartree)'],['energyType','Energy type'],['freq','Imag. freq (cm-1)'],['notes','Notes']];
+    var lines = [cols.map(function(c){return cell(c[1])}).join(',')];
+    files.forEach(function(f){lines.push(cols.map(function(c){return cell(f[c[0]])}).join(','))});
+    return lines.join('\n');
+  }
+  function pathsCSV(){
+    var head = ['Reaction','Substrate','T (K)','SM file','Pathway','TS file','Product file','Imag. freq (cm-1)','Barrier (kcal/mol)','Reverse barrier (kJ/mol)','Rate with tunnelling (s-1)','Rate source','Calc. %','Exp. %','Ratio error (points)','Exp. barrier (kcal/mol)','Barrier error (kcal/mol)'];
+    var lines = [head.map(cell).join(',')];
+    reactions.forEach(function(rx){
+      var c = computeRx(rx);
+      c.items.forEach(function(it){
+        lines.push([rx.name,rx.substrate,c.T,c.sm?c.sm.filename:'',it.p.label,it.ts?it.ts.filename:'',it.pr?it.pr.filename:'',
+          it.freq!=null?it.freq.toFixed(1):'',it.bF!=null?it.bF.toFixed(2):'',it.bR!=null?it.bR.toFixed(2):'',
+          it.k!=null?it.k.toExponential(3):'',it.kSrc||'',it.calcPct!=null?it.calcPct.toFixed(1):'',it.expPct!=null?it.expPct.toFixed(1):'',
+          it.dPct!=null?it.dPct.toFixed(1):'',it.p.expBarrier!=null?it.p.expBarrier:'',it.err!=null?it.err.toFixed(2):''].map(cell).join(','));
+      });
+    });
+    return lines.join('\n');
+  }
+  function toJSON(){return JSON.stringify({app:'suarez-dft-log',version:2,exported:new Date().toISOString(),files:files,reactions:reactions},null,2)}
+  function restore(text){
+    try{
+      var data = JSON.parse(text);
+      if(!data || (!Array.isArray(data.files) && !Array.isArray(data.reactions))) throw new Error('bad');
+      var nf=0, nr=0;
+      (data.files||[]).forEach(function(f){
+        if(!f || !f.filename) return;
+        if(!f.id) f.id = uid();
+        var i = files.findIndex(function(x){return x.id===f.id});
+        if(i>-1) files[i]=f; else files.push(f);
+        dbPut('files',f).catch(function(){}); nf++;
+      });
+      (data.reactions||[]).forEach(function(r){
+        if(!r || !r.name) return;
+        if(!r.id) r.id = uid();
+        var i = reactions.findIndex(function(x){return x.id===r.id});
+        if(i>-1) reactions[i]=r; else reactions.push(r);
+        dbPut('reactions',r).catch(function(){}); nr++;
+      });
+      renderAll();
+      toast('Restored '+nf+' file'+(nf===1?'':'s')+' and '+nr+' reaction'+(nr===1?'':'s'));
+    }catch(e){toast('That is not a valid JSON backup')}
+  }
+  function download(name,text,type){
+    try{
+      var blob = new Blob([text],{type:type});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Download started. If nothing happens, use Copy text instead.');
+    }catch(e){toast('Download blocked. Use Copy text instead.')}
+  }
+  function copyText(){
+    var ta = $('#bText');
+    if(!ta.value){toast('Choose an export first');return}
+    ta.select();
+    function fallback(){try{document.execCommand('copy');toast('Copied')}catch(e){toast('Select the text and copy it manually')}}
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(function(){toast('Copied')},fallback)}
+      else fallback();
+    }catch(e){fallback()}
+  }
+
+  /* ---------- events ---------- */
+  $('#addFile').onclick = function(){openFile(null)};
+  $('#addRx').onclick = function(){openRx(null)};
+  $('#fSave').onclick = saveFile;
+  $('#fDelete').onclick = deleteFile;
+  $('#rSave').onclick = saveRx;
+  $('#rDelete').onclick = deleteRx;
+  document.addEventListener('click',function(e){
+    var c = e.target.closest('[data-close]');
+    if(c){var d = document.getElementById(c.dataset.close); if(d) d.close()}
+  });
+  ['#q','#rq'].forEach(function(s){$(s).addEventListener('input',function(){renderFiles();renderReactions()})});
+  ['#fRole','#fType','#sort'].forEach(function(s){$(s).addEventListener('change',renderFiles)});
+  $('#fileRows').addEventListener('click',function(e){
+    var btn = e.target.closest('button[data-act]'); if(!btn) return;
+    var rec = fileById(btn.closest('tr').dataset.id); if(!rec) return;
+    openFile(rec, btn.dataset.act==='dup');
+  });
+  $('#rxList').addEventListener('click',function(e){
+    var btn = e.target.closest('button[data-act]'); if(!btn) return;
+    var id = btn.closest('.rx').dataset.id;
+    var rec = reactions.filter(function(r){return r.id===id})[0]; if(!rec) return;
+    if(btn.dataset.act==='dup'){
+      var copy = JSON.parse(JSON.stringify(rec));
+      openRx(copy,true);
+    } else openRx(rec,false);
+  });
+  function openBackup(){$('#bText').value='';$('#bdlg').showModal()}
+  $('#backupBtn').onclick = openBackup;
+  $('#backupBtn2').onclick = openBackup;
+  $('#bShowJson').onclick = function(){$('#bText').value = toJSON()};
+  $('#bShowFiles').onclick = function(){$('#bText').value = filesCSV()};
+  $('#bShowPaths').onclick = function(){$('#bText').value = pathsCSV()};
+  $('#bDownload').onclick = function(){download('suarez-dft-log.json',toJSON(),'application/json')};
+  $('#bCopy').onclick = copyText;
+  $('#bRestore').onclick = function(){var t=$('#bText').value.trim(); if(!t){toast('Paste a JSON backup first');return} restore(t)};
+  $('#bFile').addEventListener('change',function(e){
+    var f = e.target.files[0]; if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){restore(String(fr.result)); e.target.value=''};
+    fr.readAsText(f);
+  });
+  ['fdlg','rdlg','bdlg'].forEach(function(id){
+    var d = document.getElementById(id);
+    d.addEventListener('mousedown',function(e){d._down = (e.target===d)});
+    d.addEventListener('click',function(e){if(e.target===d && d._down) d.close()});
+  });
+
+  /* ---------- init ---------- */
+  openDB().then(function(d){
+    db = d;
+    return Promise.all([dbAll('files'),dbAll('reactions')]);
+  }).then(function(res){
+    files = res[0]; reactions = res[1]; renderAll();
+  }).catch(function(){
+    memOnly = true;
+    $('#notice').innerHTML = '<div class="notice">Browser storage is unavailable here, so entries will be lost when you close this page. Use Backup to save a copy.</div>';
+    renderAll();
+  });
+})();
+</script>
+</body>
+</html>
